@@ -159,26 +159,7 @@ namespace ThreadTools
         protected virtual void Dispose(bool disposing)
         {
             RequestShutdown();
-            if (_thread.IsAlive)
-            {
-                bool result = _thread.Join(_threadJoinTimeOut);
-                if (result == false)
-                {
-                    Trace.WriteLine("Dispose: Thread.Join failed");
-                    // Disable the call to Abort while debugging?
-                    if (System.Diagnostics.Debugger.IsAttached == false)
-                    {
-                        try
-                        {
-                            _thread.Abort();
-                        }
-                        catch (Exception e)
-                        {
-                            Trace.TraceError("Dispose: Thread.Abort() failed - " + e.ToString());
-                        }
-                    }
-                }
-            }
+            WaitForShutdown();
 
             if (disposing && !_disposed)
             {
@@ -201,6 +182,37 @@ namespace ThreadTools
                     if (_currentOperation != op)
                         op.TrySetCanceled();
             }
+        }
+
+        public bool WaitForShutdown()
+        {
+            return WaitForShutdown(_threadJoinTimeOut);
+        }
+
+        public bool WaitForShutdown(TimeSpan ts)
+        {
+            bool result = true;
+            if (_thread.IsAlive)
+            {
+                result = _thread.Join(_threadJoinTimeOut);
+                if (result == false)
+                {
+                    Trace.WriteLine("Dispose: Thread.Join failed");
+                    // Disable the call to Abort while debugging?
+                    if (System.Diagnostics.Debugger.IsAttached == false)
+                    {
+                        try
+                        {
+                            _thread.Abort();
+                        }
+                        catch (Exception e)
+                        {
+                            Trace.TraceError("Dispose: Thread.Abort() failed - " + e.ToString());
+                        }
+                    }
+                }
+            }
+            return result;
         }
 
         #endregion
