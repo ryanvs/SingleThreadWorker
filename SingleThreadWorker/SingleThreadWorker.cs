@@ -14,6 +14,8 @@ namespace ThreadTools
     {
         #region Member variables
 
+        private static readonly string _defaultThreadName = System.Reflection.MethodBase.GetCurrentMethod().DeclaringType.Name;
+
         private bool _disposed;
         private bool _initialized;
         protected readonly Thread _thread;
@@ -112,19 +114,30 @@ namespace ThreadTools
 
         #endregion
 
-        #region Constructor / Destructor
+        #region Constructors / Destructor
 
         public SingleThreadWorker()
+            : this(_defaultThreadName)
         {
-            _thread = new Thread(this.Run);
-            _thread.Name = this.GetType().Name;
-            _thread.Start();
+        }
+
+        public SingleThreadWorker(ApartmentState state)
+            : this(_defaultThreadName, state)
+        {
         }
 
         public SingleThreadWorker(string threadName)
         {
             _thread = new Thread(this.Run);
             _thread.Name = threadName;
+            _thread.Start();
+        }
+
+        public SingleThreadWorker(string threadName, ApartmentState state)
+        {
+            _thread = new Thread(this.Run);
+            _thread.Name = threadName;
+            _thread.SetApartmentState(state);
             _thread.Start();
         }
 
