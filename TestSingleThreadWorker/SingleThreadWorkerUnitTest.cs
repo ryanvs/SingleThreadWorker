@@ -166,5 +166,125 @@ namespace ThreadTools
             }
             Assert.IsFalse(exceptionThrown, "Send from same thread should succeed");
         }
+
+        [TestMethod]
+        public void SendFromSameThreadShouldSucceedSTA()
+        {
+            bool exceptionThrown = false;
+            SingleThreadWorker testThread = null;
+
+            try
+            {
+                var sw = Stopwatch.StartNew();
+                var evt = new ManualResetEventSlim();
+                testThread = new SingleThreadWorker(ApartmentState.STA);
+                testThread.Post(
+                    delegate
+                    {
+                        Trace.WriteLine("Test 'Post' from delegate");
+                        Thread.Sleep(1000);
+                        testThread.Send(delegate { Trace.WriteLine("Test 'Send' from inner delegate"); Thread.Sleep(1000); }, null);
+                        Thread.Sleep(1000);
+                        testThread.Post(delegate { Trace.WriteLine("Test 'Post' from inner delegate"); Thread.Sleep(1000); evt.Set(); }, null);
+                        Thread.Sleep(1000);
+                        //evt.Set(); // Use event from the Post operation
+                    }, null);
+                evt.Wait();
+                sw.Stop();
+                Trace.WriteLine(string.Format("Send took {0} msec", sw.ElapsedMilliseconds));
+            }
+            catch (Exception ex)
+            {
+                exceptionThrown = true;
+                Trace.WriteLine(string.Format("Send threw an exception: {0} - {1}", ex.GetType().Name, ex.ToString()));
+            }
+            finally
+            {
+                if (testThread != null)
+                {
+                    testThread.Dispose();
+                }
+            }
+            Assert.IsFalse(exceptionThrown, "Send from same thread should succeed");
+        }
+
+        [TestMethod]
+        public void ManualQueueFuncShouldSucceedSTA()
+        {
+            bool exceptionThrown = false;
+            SingleThreadWorker testThread = null;
+
+            try
+            {
+                var sw = Stopwatch.StartNew();
+                testThread = new SingleThreadWorker(ApartmentState.STA);
+                var task = testThread.QueueFunc<string>(
+                    () =>
+                    {
+                        Trace.WriteLine("Test for manual queue Func");
+                        Thread.Sleep(1000);
+                        testThread.Send(delegate { Trace.WriteLine("Test 'Send' from inner delegate"); Thread.Sleep(1000); }, null);
+                        Thread.Sleep(1000);
+                        return null;
+                    });
+                task.Wait(TimeSpan.FromSeconds(10.0));
+                sw.Stop();
+                Trace.WriteLine(string.Format("Operation took {0} msec", sw.ElapsedMilliseconds));
+            }
+            catch (Exception ex)
+            {
+                exceptionThrown = true;
+                Trace.WriteLine(string.Format("Exception occurred: {0} - {1}", ex.GetType().Name, ex.ToString()));
+            }
+            finally
+            {
+                if (testThread != null)
+                {
+                    testThread.Dispose();
+                }
+            }
+            Assert.IsFalse(exceptionThrown, "Manual 'QueueFunc' should succeed");
+        }
+
+        [TestMethod]
+        public void ManualExitThreadShouldSucceedSTA()
+        {
+            bool exceptionThrown = false;
+            SingleThreadWorker testThread = null;
+
+            try
+            {
+                var sw = Stopwatch.StartNew();
+                testThread = new SingleThreadWorker(ApartmentState.STA);
+                var task = testThread.QueueFunc<string>(
+                    () =>
+                    {
+                        Trace.WriteLine("Test for manual queue Func");
+                        Thread.Sleep(1000);
+                        testThread.Send(delegate { Trace.WriteLine("Test 'Send' from inner delegate"); Thread.Sleep(1000); }, null);
+                        Thread.Sleep(1000);
+                        return null;
+                    });
+                task.ContinueWith(_ => { testThread.RequestShutdown(); });
+                bool success = testThread.Thread.Join(TimeSpan.FromSeconds(10.0));
+                sw.Stop();
+                Trace.WriteLine(string.Format("Operation took {0} msec", sw.ElapsedMilliseconds));
+                Assert.IsTrue(success, "Thread join failed. RequestShutdown didn't work.");
+                Assert.IsFalse(testThread.Thread.IsAlive, "Thread is still alive");
+            }
+            catch (Exception ex)
+            {
+                exceptionThrown = true;
+                Trace.WriteLine(string.Format("Exception occurred: {0} - {1}", ex.GetType().Name, ex.ToString()));
+            }
+            finally
+            {
+                if (testThread != null)
+                {
+                    testThread.Dispose();
+                }
+            }
+            Assert.IsFalse(exceptionThrown, "Manual 'QueueFunc' should succeed");
+        }
     }
 }

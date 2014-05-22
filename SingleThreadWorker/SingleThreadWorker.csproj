@@ -7,7 +7,7 @@
     <ProjectGuid>{BB4E0885-B32B-4E15-9301-4FEFD024826C}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>SingleThreadWorker</RootNamespace>
+    <RootNamespace>ThreadTools</RootNamespace>
     <AssemblyName>SingleThreadWorker</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
@@ -39,6 +39,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="DefaultMessageFilter.cs" />
+    <Compile Include="IMessageFilter.cs" />
     <Compile Include="Operation.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SingleThreadWorker.cs" />

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -302,6 +303,17 @@ namespace ThreadTools
 
         #endregion
 
+        #region Manual operation methods
+
+        public Task<T> QueueFunc<T>(Func<T> func)
+        {
+            var operation = new Operation<T>(func);
+            _operations.Add(operation);
+            return operation.TaskTyped;
+        }
+
+        #endregion
+
         #region SynchronizationContext
 
         public override void Post(SendOrPostCallback d, object state)
@@ -353,6 +365,34 @@ namespace ThreadTools
             else
             {
                 return method.DynamicInvoke(args);
+            }
+        }
+
+        #endregion
+
+        #region IMessageFilter
+
+        [DllImport("ole32.dll")]
+        static extern int CoRegisterMessageFilter(
+            IMessageFilter lpMessageFilter,
+            out IMessageFilter lplpMessageFilter);
+
+        private IMessageFilter _messageFilter;
+        private IMessageFilter _oldMessageFilter;
+
+        private void RegisterFilter(IMessageFilter filter)
+        {
+            _messageFilter = filter;
+            CoRegisterMessageFilter(_messageFilter, out _oldMessageFilter);
+            //Thread.Sleep(3000);
+        }
+
+        private void UnregisterFilter()
+        {
+            if (_oldMessageFilter != null)
+            {
+                _messageFilter = _oldMessageFilter;
+                CoRegisterMessageFilter(_messageFilter, out _oldMessageFilter);
             }
         }
 
